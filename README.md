@@ -23,7 +23,7 @@ The workflow uses a hybrid model to efficiently handle different types of reques
 
 This architecture ensures that simple, common tasks are handled flexibly by the main agent, while the complex, multi-step summarization process is handled by a more reliable, hard-coded procedure.
 
-```mermaid
+```
 graph TD
     A[WhatsApp Message via Webhook] --> B{If Command is 'SUMMARY'};
     B -- No --> C[🤖 General AI Agent <br> (Handles LIST, MOVE, DELETE)];
