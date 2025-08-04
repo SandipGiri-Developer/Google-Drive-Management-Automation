@@ -1,0 +1,684 @@
+{
+  "name": "Google Drive Managing Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "parametersQuery": {
+          "values": [
+            {
+              "name": "mimeType",
+              "valueProvider": "modelOptional"
+            }
+          ]
+        },
+        "optimizeResponse": true,
+        "dataField": "files"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        2672,
+        512
+      ],
+      "id": "5923f60d-3d3d-4406-9f7a-259d1e958f6e",
+      "name": "get drives ",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "RhmcwePfHDP7R0JE",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.Body }}",
+        "options": {
+          "systemMessage": "=You manage Google Drive via commands. Respond in max three lines, no long explanations.\n\nCore Rule:\nAlways get the file/folder ID first before any action.\n\nCommands:\n\nLIST /Folder: Find folder ID → List all files inside.\n\nDELETE /folder/file: Get file ID → Delete it → Confirm.\n\nMOVE /from/file /to: Get file & folder IDs → Move file → Confirm.\n\nSUMMARY /Folder: List files → For PDFs/DOCX/TXT, summarize content → Return digest.\n\nTools:\nUse search tool to list files in folders.\n\nSafety:\nAsk confirmation before deleting folders. Confirm after every action."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        2384,
+        288
+      ],
+      "id": "73d08fac-aa10-418c-88a3-e71125b26fe0",
+      "name": "SRAP AGENT"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2160,
+        512
+      ],
+      "id": "41c1391b-4f50-423c-9162-5cb1b9c7fa01",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "fMxQH6VQ2xiV7gdE",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "2968a2a4-133c-4f23-b3df-72573a030829",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        368,
+        80
+      ],
+      "id": "37b27449-ad33-46c6-a91e-16c48dd694e6",
+      "name": "Webhook",
+      "webhookId": "2968a2a4-133c-4f23-b3df-72573a030829"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "919763705484"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2288,
+        512
+      ],
+      "id": "0fab7d73-9a7e-4d3d-9b72-456fdd20e6a9",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "from": "+14155238886",
+        "to": "+919763705484",
+        "toWhatsapp": true,
+        "message": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        3216,
+        80
+      ],
+      "id": "73b2941e-6e13-4c64-9e1a-f3f798c43be9",
+      "name": "Send an SMS/MMS/WhatsApp message",
+      "credentials": {
+        "twilioApi": {
+          "id": "rUvNwlqPx5rFeCLm",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "instructions": "output only the file or folder name without any slash or anything for  input: SUMMARY /ProjectX then output: Projectx\nonly work when input includes summary and return none if there is no summary iin input make sure input can be taken in any letters whether it is cpaital small or any",
+        "codeGeneratedForPrompt": "output only the file or folder name without any slash or anything for  input: SUMMARY /ProjectX then output: Projectx\nonly work when input includes summary and return none if there is no summary iin input make sure input can be taken in any letters whether it is cpaital small or any",
+        "jsCode": "const items = $input.all();\nconst result = items.map((item) => {\n  const summaryIndex = item.json.body.Body.toLowerCase().indexOf(\"summary\");\n  if (summaryIndex !== -1) {\n    const fileName = item.json.body.Body.slice(summaryIndex + 8);\n    return { fileName };\n  }\n  return { fileName: \"none\" };\n});\nreturn result;\n"
+      },
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        -128
+      ],
+      "id": "b25d69fa-2652-4796-aaed-89c0ecec824b",
+      "name": "AI Transform"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1ede32a4-f27e-45f8-a3bc-2338df8c5cbf",
+              "leftValue": "={{ $json.body.Body.split(\"/\")[0] }}",
+              "rightValue": "SUMMARY",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        592,
+        80
+      ],
+      "id": "7dd72c8e-3113-4723-878a-c99f35e58411",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "={{ $json.fileName }}",
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1264,
+        -128
+      ],
+      "id": "b2ebed62-9ab9-4b51-996e-a8ce8a65a117",
+      "name": "Summary Doc",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "RhmcwePfHDP7R0JE",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0f44ef8c-8587-4d38-be4d-54007da49428",
+                    "leftValue": "={{ $json.name.split(\".\")[1] }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5c09c236-4344-4fad-bdf6-6a2e459b3a24",
+                    "leftValue": "={{ $json.name.split(\".\")[1] }}",
+                    "rightValue": "txt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TEXT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "588922ce-414d-4038-b30e-cc1654691e51",
+                    "leftValue": "={{ $json.name.split(\".\")[1] }}",
+                    "rightValue": "docx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DOCX"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1920,
+        -144
+      ],
+      "id": "04788f75-4de7-43bb-a8c9-b88fbb3560cc",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "66f3c3dc-8d20-45f4-9a8a-fccc4c6802d9",
+              "name": "body.Body",
+              "value": "={{ $json.body.Body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        816,
+        -128
+      ],
+      "id": "85306811-c686-4578-b019-b29d4b560c89",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        -224
+      ],
+      "id": "1843d1c5-c420-4347-b6b8-8776e90fbb7e",
+      "name": "Extract PDF"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        16
+      ],
+      "id": "284ad87d-d9a2-4c0d-ab3f-1e7cfc01d64f",
+      "name": "Extract Text"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2688,
+        0
+      ],
+      "id": "28ca79c4-1eef-4a4e-81c1-8faabd12cf7f",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "fMxQH6VQ2xiV7gdE",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a help full asissatacne only helps in summaraixing things so just summarize the thing give to you this is the data:{{ $json.data }} or {{ $json.text }}\n- keep the output in 1500 chars",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        2592,
+        -224
+      ],
+      "id": "4c44a546-8768-414e-8e75-b729057f382c",
+      "name": "Summarize"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1472,
+        -128
+      ],
+      "id": "4449ae4b-cc39-43ce-968b-68702cbacd3f",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "RhmcwePfHDP7R0JE",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('File', ``, 'string') }}"
+        },
+        "driveId": {
+          "__rl": true,
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Parent_Drive', ``, 'string') }}",
+          "mode": "id"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Parent_Folder', ``, 'string') }}",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.googleDriveTool",
+      "typeVersion": 3,
+      "position": [
+        2544,
+        496
+      ],
+      "id": "0f7f9d48-0524-44ae-aecc-63049d39d001",
+      "name": "Move file in Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "RhmcwePfHDP7R0JE",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('File', ``, 'string') }}"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTool",
+      "typeVersion": 3,
+      "position": [
+        2432,
+        528
+      ],
+      "id": "e6994ef5-38a2-493b-9837-4a7655dfe226",
+      "name": "Delete a file in Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "RhmcwePfHDP7R0JE",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "get drives ": {
+      "ai_tool": [
+        [
+          {
+            "node": "SRAP AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SRAP AGENT": {
+      "main": [
+        [
+          {
+            "node": "Send an SMS/MMS/WhatsApp message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "SRAP AGENT",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "SRAP AGENT",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Transform": {
+      "main": [
+        [
+          {
+            "node": "Summary Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SRAP AGENT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summary Doc": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Transform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extract PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Extract PDF": {
+      "main": [
+        [
+          {
+            "node": "Summarize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarize",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text": {
+      "main": [
+        [
+          {
+            "node": "Summarize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize": {
+      "main": [
+        [
+          {
+            "node": "Send an SMS/MMS/WhatsApp message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move file in Google Drive": {
+      "ai_tool": [
+        [
+          {
+            "node": "SRAP AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a file in Google Drive": {
+      "ai_tool": [
+        [
+          {
+            "node": "SRAP AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1238d55a-563c-4f69-8af1-7836095181b9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b05e2179abb2844bf0617c474d4c548bb4bd7575d090f0ce0255b62258ea275a"
+  },
+  "id": "J5HqeeGjHCeK67lX",
+  "tags": []
+}
